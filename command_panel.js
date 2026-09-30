@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import { statements } from "./database.js";
 import { canManageStaff } from "./util_permissions.js";
+import { showLeaderboardFromPanel } from "./command_leaderboard.js";
 import { errorEmbed, infoEmbed } from "./util_embeds.js";
 import { calculateShiftPaidSeconds, formatDuration } from "./util_time.js";
 
@@ -262,22 +263,6 @@ export async function handleButton(interaction) {
   }
 
   if (customId === "staff_leaderboard") {
-    const leaderboard = await statements.getLeaderboard(interaction.guildId, 10);
-
-    if (!leaderboard.length) {
-      return interaction.reply({
-        embeds: [infoEmbed("Staff Leaderboard", "No recorded staff time yet.")],
-        ephemeral: true
-      });
-    }
-
-    const lines = leaderboard.map((entry, index) =>
-      `**${index + 1}.** <@${entry.user_id}> — **${formatDuration(entry.total_seconds)}**`
-    );
-
-    return interaction.reply({
-      embeds: [infoEmbed("🏆 Staff Leaderboard", lines.join("\n"))],
-      ephemeral: false
-    });
+    return showLeaderboardFromPanel(interaction);
   }
 }
