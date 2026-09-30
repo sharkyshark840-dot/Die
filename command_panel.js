@@ -40,6 +40,12 @@ const PANEL_BUTTONS = Object.freeze([
     label: "My Hours",
     emoji: "📊",
     style: ButtonStyle.Secondary
+  },
+  {
+    customId: "staff_leaderboard",
+    label: "Leaderboard",
+    emoji: "🏆",
+    style: ButtonStyle.Secondary
   }
 ]);
 
@@ -48,19 +54,25 @@ export const data = new SlashCommandBuilder()
   .setDescription("Post the Staff Time control panel.");
 
 function panelComponents() {
-  const row = new ActionRowBuilder();
+  const rows = [];
 
-  for (const button of PANEL_BUTTONS) {
-    row.addComponents(
-      new ButtonBuilder()
-        .setCustomId(button.customId)
-        .setLabel(button.label)
-        .setEmoji(button.emoji)
-        .setStyle(button.style)
-    );
+  for (let index = 0; index < PANEL_BUTTONS.length; index += 5) {
+    const row = new ActionRowBuilder();
+
+    for (const button of PANEL_BUTTONS.slice(index, index + 5)) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(button.customId)
+          .setLabel(button.label)
+          .setEmoji(button.emoji)
+          .setStyle(button.style)
+      );
+    }
+
+    rows.push(row);
   }
 
-  return [row];
+  return rows;
 }
 
 export function buildPanel() {
@@ -188,13 +200,6 @@ export async function handleButton(interaction) {
     }
 
     const now = Date.now();
-    const breaks = await statements.getBreaksForShift(shift.id);
-    const paidSeconds = calculateShiftPaidSeconds(
-      { ...shift, ended_at: now },
-      breaks,
-      now
-    );
-
     await statements.endShift(now, shift.id);
 
     return interaction.reply({
@@ -249,11 +254,30 @@ export async function handleButton(interaction) {
         "My Hours",
         [
           `📊 **Total:** ${formatDuration(total)}`,
-          `Shift time: ${formatDuration(shiftSeconds)}`,
-          `Manual adjustments: ${adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(adjustmentSeconds))}`
+          `• Shift time: **${formatDuration(total)}**`
         ].join("\n")
       )],
       ephemeral: true
+    });
+  }
+
+  if (customId === "staff_leaderboard") {
+    const leaderboard = await statements.getLeaderboard(interaction.guildId, 10);
+
+    if (!leaderboard.length) {
+      return interaction.reply({
+        embeds: [infoEmbed("Staff Leaderboard", "No recorded staff time yet.")],
+        ephemeral: true
+      });
+    }
+
+    const lines = leaderboard.map((entry, index) =>
+      `**${index + 1}.** <@${entry.user_id}> — **${formatDuration(entry.total_seconds)}**`
+    );
+
+    return interaction.reply({
+      embeds: [infoEmbed("🏆 Staff Leaderboard", lines.join("\n"))],
+      ephemeral: false
     });
   }
 }

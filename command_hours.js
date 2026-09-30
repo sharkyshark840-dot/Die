@@ -7,38 +7,37 @@ export const data = new SlashCommandBuilder()
   .setDescription("View your recorded paid time.");
 
 export async function execute(interaction) {
-  const shifts = await statements.getCompletedShifts(interaction.guildId, interaction.user.id, 100);
+  const shifts = await statements.getCompletedShifts(interaction.guildId, interaction.user.id, 1000);
   const active = await statements.getActiveShift(interaction.guildId, interaction.user.id);
   const adjustments = await statements.getAdjustments(interaction.guildId, interaction.user.id, 1000);
 
-  let total = 0;
+  let shiftSeconds = 0;
 
   for (const shift of shifts) {
-    total += calculateShiftPaidSeconds(
+    shiftSeconds += calculateShiftPaidSeconds(
       shift,
       await statements.getBreaksForShift(shift.id)
     );
   }
 
   if (active) {
-    total += calculateShiftPaidSeconds(
+    shiftSeconds += calculateShiftPaidSeconds(
       active,
       await statements.getBreaksForShift(active.id)
     );
   }
 
   const adjustmentSeconds = adjustments.reduce(
-    (sum, row) => sum + row.amount_seconds,
+    (sum, row) => sum + Number(row.amount_seconds),
     0
   );
 
-  const finalTotal = Math.max(0, total + adjustmentSeconds);
+  const totalSeconds = Math.max(0, shiftSeconds + adjustmentSeconds);
 
   return interaction.reply({
     content: [
-      `📊 **Your recorded paid time:** ${formatDuration(finalTotal)}`,
-      `• Shift time: **${formatDuration(total)}**`,
-      `• Manual adjustments: **${adjustmentSeconds >= 0 ? "+" : "-"}${formatDuration(Math.abs(adjustmentSeconds))}**`
+      `📊 **Total:** ${formatDuration(totalSeconds)}`,
+      `• Shift time: **${formatDuration(totalSeconds)}**`
     ].join("\n"),
     ephemeral: true
   });

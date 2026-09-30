@@ -159,6 +159,59 @@ export const statements = {
       LIMIT $3
     `, [guildId, userId, limit]);
     return rows;
+  },
+
+  getLeaderboard: async (guildId, limit = 10) => {
+    const { rows: shifts } = await pool.query(`
+      SELECT * FROM shifts
+      WHERE guild_id = $1
+      ORDER BY started_at DESC
+    `, [guildId]);
+
+    const { rows: adjustments } = await pool.query(`
+      SELECT user_id, COALESCE(SUM(amount_seconds), 0) AS adjustment_seconds
+      FROM adjustments
+      WHERE guild_id = $1
+      GROUP BY user_id
+    `, [guildId]);
+
+    const totals = new Map();
+
+    for (const shift of shifts) {
+      if (!totals.has(shift.user_id)) totals.set(shift.user_id, 0);
+
+      const { rows: breaks } = await pool.query(
+        `SELECT * FROM breaks WHERE shift_id = $1 ORDER BY started_at ASC`,
+        [shift.id]
+      );
+
+      const end = shift.ended_at ?? Date.now();
+      let breakSeconds = 0;
+
+      for (const item of breaks) {
+        const breakEnd = item.ended_at ?? end;
+        if (breakEnd > item.started_at) {
+          breakSeconds += (breakEnd - item.started_at) / 1000;
+        }
+      }
+
+      const paidSeconds = Math.max(0, (end - shift.started_at) / 1000 - breakSeconds);
+      totals.set(shift.user_id, totals.get(shift.user_id) + paidSeconds);
+    }
+
+    for (const adjustment of adjustments) {
+      if (!totals.has(adjustment.user_id)) totals.set(adjustment.user_id, 0);
+      totals.set(
+        adjustment.user_id,
+        Math.max(0, totals.get(adjustment.user_id) + Number(adjustment.adjustment_seconds))
+      );
+    }
+
+    return [...totals.entries()]
+      .map(([user_id, total_seconds]) => ({ user_id, total_seconds }))
+      .filter(entry => entry.total_seconds > 0)
+      .sort((a, b) => b.total_seconds - a.total_seconds)
+      .slice(0, limit);
   }
 };
 

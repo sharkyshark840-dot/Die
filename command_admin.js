@@ -21,7 +21,7 @@ export const data = new SlashCommandBuilder()
     .addStringOption(option => option.setName("reason").setDescription("Required audit reason").setRequired(true).setMaxLength(500)))
   .addSubcommand(sub => sub
     .setName("history")
-    .setDescription("View manual time-adjustment history.")
+    .setDescription("View administrative time-entry history.")
     .addUserOption(option => option.setName("staff").setDescription("Staff member").setRequired(true)));
 
 export async function execute(interaction) {
@@ -40,7 +40,7 @@ export async function execute(interaction) {
 
     if (!rows.length) {
       return interaction.reply({
-        embeds: [infoEmbed("Adjustment History", `${target} has no manual time adjustments.`)],
+        embeds: [infoEmbed("Time Entry History", `${target} has no administrative time entries.`)],
         ephemeral: true
       });
     }
@@ -51,7 +51,7 @@ export async function execute(interaction) {
     });
 
     return interaction.reply({
-      embeds: [infoEmbed(`Adjustment History — ${target.username}`, lines.join("\n").slice(0, 3900))],
+      embeds: [infoEmbed(`Time Entry History — ${target.username}`, lines.join("\n").slice(0, 3900))],
       ephemeral: true
     });
   }
