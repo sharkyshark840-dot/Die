@@ -200,7 +200,7 @@ export async function handleButton(interaction) {
     return interaction.reply({
       embeds: [infoEmbed(
         "Shift Ended",
-        `🔴 Your shift has ended.\n\n**Paid time:** ${formatDuration(paidSeconds)}`
+        "🔴 Your shift has ended."
       )],
       ephemeral: true
     });

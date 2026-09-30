@@ -33,7 +33,7 @@ export async function execute(interaction) {
   return interaction.reply({
     embeds: [successEmbed(
       "Shift Ended",
-      `Your shift has ended.\n\n**Paid time:** ${formatDuration(paidSeconds)}`
+      "Your shift has ended."
     )],
     ephemeral: true
   });
